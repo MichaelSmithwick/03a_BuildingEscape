@@ -111,3 +111,9 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+*/Binaries/
+*/Build/
+*/DerivedDataCache
+*/Intermediate/
+*/Saved/
+BuildingEscape/Content/StarterContent/
