@@ -1,6 +1,7 @@
 // Copyright (c) 2018 - All Rights Reserved
 
 #include "OpenDoor.h"
+#include "Engine/World.h"
 
 
 // Sets default values for this component's properties
@@ -18,21 +19,19 @@ void UOpenDoor::BeginPlay()
 {
 	Super::BeginPlay();
 
+	Owner = GetOwner();
+	ActorThatOpens = GetWorld()->GetFirstPlayerController()->GetPawn();
+
 }
 
-void UOpenDoor::OpenDoor(float AngleToOpen=60.0)
+void UOpenDoor::OpenDoor()
 {
-	// save open angle for UI display purposes (for now)
-	OpenAngle = AngleToOpen;
+	Owner->SetActorRotation(FRotator(0.0, OpenAngle, 0.0));
+}
 
-	// get current owner
-	AActor* Owner = GetOwner();
-
-	// create a Rotator (Pitch,Yaw,Roll)
-	FRotator NewRotation = FRotator(0.0, OpenAngle, 0.0);
-
-	// set the door rotation
-	Owner->SetActorRotation(NewRotation);
+void UOpenDoor::CloseDoor()
+{
+	Owner->SetActorRotation(FRotator(0.0, 0.0, 0.0));
 }
 
 
@@ -44,11 +43,14 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 	// if actor is in trigger volume then open door
 	if (PressurePlate->IsOverlappingActor(ActorThatOpens))
 	{
-		OpenDoor(); // door opens to 60 degrees by default
+		OpenDoor();
+		LastDoorOpenTime = GetWorld()->GetTimeSeconds();
 	}
-	else
+
+	if (GetWorld()->GetTimeSeconds() - LastDoorOpenTime > DoorCloseDelay)
 	{
-		OpenDoor(0.0); // close the door
+		CloseDoor();
 	}
+
 }
 
