@@ -28,7 +28,7 @@ public:
 
 private:
 	UPROPERTY(EditAnywhere)
-	float Reach = 50.0;
+	float Reach = 200.0;
 
 	UPhysicsHandleComponent* PhysicsHandle = nullptr;
 
@@ -41,12 +41,18 @@ private:
 	// find attached physics handle
 	void FindPhysicsHandleComponent();
 
-	// setup (assumed) user input component
-	void SetupInputComponent();
+	// Log an error to the log Output Log
+	const void LogError(const FString Name, const FString File, const FString Function, const int32 ErrorLine);
+
+	// Find and Setup player input component
+	void FindAndSetupInputComponent();
 
 	// Return hit for first physics body in reach
 	const FHitResult  GetFirstPhysicsBodyInReach();
 
 	// Get vector location of the extent of the players reach
-	const FVector GetPlayerReach(FVector& DefaultPawnLocation);
+	const FVector GetPlayerReachEnd();
+
+	// Get vector location of the base of the players reach
+	const FVector GetPlayerReachBase();
 };

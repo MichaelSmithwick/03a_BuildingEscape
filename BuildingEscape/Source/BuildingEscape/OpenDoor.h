@@ -28,6 +28,7 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
+
 private:
 	UPROPERTY(VisibleAnywhere)
 	float OpenAngle = 90.0;
@@ -42,7 +43,12 @@ private:
 
 	AActor* Owner;
 
-	UPROPERTY(VisibleAnywhere)
-	AActor* ActorThatOpens;
+	//UPROPERTY(VisibleAnywhere)
+	//AActor* ActorThatOpens;
+
+	UPROPERTY(EditAnywhere)
+	int32 OpenMass = 50.0;
 	
+	// sum of all mass on the pressure plate
+	float GetTotalMassOfActorsOnPlate();
 };

@@ -13,7 +13,7 @@ UGrabber::UGrabber()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.
 	// You can turn these features off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;	// this must be true for TickComponent() function to be called.
+	PrimaryComponentTick.bCanEverTick = true;
 }
 
 
@@ -22,52 +22,48 @@ void UGrabber::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// Find the UPhysicsHandle and UInputComponent components of the Owner object
 	FindPhysicsHandleComponent();
-	SetupInputComponent();
+	FindAndSetupInputComponent();
 
 }
 
-// setup input component -- only appears at run time
-void UGrabber::SetupInputComponent()
+// Find the Input Component and bind this component's actions to it
+// store Input Component in UGrabber::PawnInputComponent
+// (Input Component only appears at run time)
+void UGrabber::FindAndSetupInputComponent()
 {
 	PawnInputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
 	if (PawnInputComponent)
 	{
-		// bind input actions to input component and callback functions
 		PawnInputComponent->BindAction("Grab", EInputEvent::IE_Pressed, this, &UGrabber::Grab);
 		PawnInputComponent->BindAction("Grab", EInputEvent::IE_Released, this, &UGrabber::Release);
-
-		UE_LOG(LogTemp, Warning, TEXT("Found PawnInputComponent: %s"), *(PawnInputComponent->GetName()))
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("Unable to get PawnInputComponent from %s."), *(GetOwner()->GetName()))
 	}
 }
 
-// look for the PhysicsHandle
+// find a PhysicsHandle component owned by this object's owner and store it in 'UGrabber::PhysicsHandle'
 void UGrabber::FindPhysicsHandleComponent()
 {
-	// if 'PhysicsHandle' is not valid the retrieving line number will be returned with the error information
-	int32 ErrorLine = __LINE__ + 1;
 	PhysicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
-	if (PhysicsHandle)
+	if (PhysicsHandle == nullptr)
 	{
-		// found - do nothing for now
-	}
-	else
-	{
-		// not found - report error
-		// also check that Physics Handle component was added to the default pawn (i.e. player)
-		FString FileName = FString(TEXT(__FILE__));
-		FString FunctionName = FString(TEXT(__FUNCTION__));
-		UE_LOG(LogTemp, Error, TEXT("%s DOES NOT HAVE A Physics Handle Component."), *(GetOwner()->GetName()))
-		UE_LOG(LogTemp, Error, TEXT("Does %s have a Blueprint assigned Physics Handle object?"), *(GetOwner()->GetName()))
-		UE_LOG(LogTemp, Error, TEXT("[ File: %s  Function: %s  Line Number: %d ]"), *FString(TEXT(__FILE__)), *FString(TEXT(__FUNCTION__)), ErrorLine)
+		LogError(GetOwner()->GetName(),FString(TEXT(__FILE__)),FString(TEXT(__FUNCTION__)),__LINE__);
 	}
 }
 
-// handle user input -- input active, i.e. Key down, Button pushed
+// display error message to Output Log
+// @input Object Name		-- Name of object (or any string)
+// @input File Name			-- name of the file, usually the __FILE__ macro
+// @input Function Name		-- name of the function, usually the __FUNCTION__ macro
+// @input Line Number		-- line number of error, usually the __LINE__ macro
+const void UGrabber::LogError(const FString Name, const FString File, const FString Function, const int32 ErrorLine)
+{
+	UE_LOG(LogTemp, Error, TEXT("%s DOES NOT HAVE A Physics Handle Component."), *Name)
+	UE_LOG(LogTemp, Error, TEXT("Does %s have a Blueprint assigned Physics Handle object?"), *Name)
+	UE_LOG(LogTemp, Error, TEXT("[ File: %s  Function: %s  Line Number: %d ]"), *File, *Function, ErrorLine)
+}
+
+// handle user active input, e.g. Key down, Button pushed
 void UGrabber::Grab()
 {
 	// LINE TRACE and see if we reach any actors with physics body collision channel set
@@ -78,7 +74,6 @@ void UGrabber::Grab()
 	// If we hit something then attach a physics handle
 	if (ActorHit)
 	{
-		// TODO attach physics handle
 		PhysicsHandle->GrabComponent(
 			ComponentToGrab,
 			NAME_None,
@@ -86,83 +81,69 @@ void UGrabber::Grab()
 			true
 		);
 
-		UE_LOG(LogTemp, Warning, TEXT("PhysicsHandle grabs component."))
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("PhysicsHandle DID NOT GRAB component."))
 	}
 }
 
-// handle user input -- input released, i.e. Key up, Button release
+// handle user released input, e.g. Key up, Button release
 void UGrabber::Release()
 {
-	// TODO release physics handle
 	PhysicsHandle->ReleaseComponent();
-
-	UE_LOG(LogTemp, Warning, TEXT("PhysicsHandle Releases Component"))
 }
 
+// Create a debug vector (pointing line) to show where the default pawn is looking if needed
+//DrawDebugLine(GetWorld(), GetPlayerReachBase(), GetPlayerReachEnd(), FColor(255, 0, 0, 255), false, 0.0, 0, 10.0);
 
+// Ask World if there is a physics body in reach, if so, get it, and return it
+// @return FHitResult .. valid only if found...
 const FHitResult UGrabber::GetFirstPhysicsBodyInReach()
 {
-	FVector DefaultPawnLocation;
-	FVector LineTraceEnd = GetPlayerReach(DefaultPawnLocation);
-
-	// setup query parameters
+	// setup query parameters, Tag=="", Complex==false, Ignore==Object Owner
 	FCollisionQueryParams TraceParameters(FName(TEXT("")), false, GetOwner());
 
-	FHitResult Hit;
+	FHitResult HitObject;
 
-	// Line-trace (aka ray-cast) out to 'Reach' distance
-	bool IsHit = GetWorld()->LineTraceSingleByObjectType(
-		OUT Hit,				// detected object to be returned
-		DefaultPawnLocation,	// where the pawn is
-		LineTraceEnd,			// the end of the line trace
-		FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody), // what to look for
-		TraceParameters			// don't detect default pawn, don't detect multiple objects
+	// Test to see if there is an object in reach
+	GetWorld()->LineTraceSingleByObjectType(
+		OUT HitObject,														// if detected the object to be returned
+		GetPlayerReachBase(),												// pawn trace line base
+		GetPlayerReachEnd(),												// end of reach
+		FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody),	// type of object to test for
+		TraceParameters														// don't detect default pawn, don't detect multiple objects
 	);
 
-	// Create a debug vector (pointing line) to show where the default pawn is looking
-	DrawDebugLine(GetWorld(), DefaultPawnLocation, LineTraceEnd, FColor(255, 0, 0, 255), false, 0.0, 0, 10.0);
-
-	// determine what was hit by 'line-trace'
-	if (IsHit)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s is hit."), *(Hit.GetActor()->GetName()));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("No Hit."));
-	}
-
-	return Hit;
+	return HitObject;
 }
 
-const FVector UGrabber::GetPlayerReach(FVector& DefaultPawnLocation)
+// Get the end location vector for the pawns reaching viewpoint
+const FVector UGrabber::GetPlayerReachEnd()
 {
-	// where the default pawn is at and the direction it is facing in
 	FRotator DefaultPawnRotation;
-
-	// get location and facing direction of default pawn
+	FVector DefaultPawnLocation;
 	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(DefaultPawnLocation, DefaultPawnRotation);
 
+	// UGrabber::Reach scales the unit vector returned by FRotator
 	return DefaultPawnLocation + (DefaultPawnRotation.Vector() * Reach);
 }
 
-// Called every frame
+// Get the base location vector for the pawns reaching viewpoint
+const FVector UGrabber::GetPlayerReachBase()
+{
+	FRotator DefaultPawnRotation;
+	FVector DefaultPawnLocation;
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(DefaultPawnLocation, DefaultPawnRotation);
+
+	return DefaultPawnLocation;
+}
+
+// Called every frame and moves held item
 void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	FVector DefaultPawnLocation;
-	FVector LineTraceEnd = GetPlayerReach(DefaultPawnLocation);
-
-	// if physics handle is attached 
+	// move held item to end of players reach line
 	if (PhysicsHandle->GrabbedComponent)
 	{
-		// move the object that we're holding
-		PhysicsHandle->SetTargetLocation(LineTraceEnd);
+		PhysicsHandle->SetTargetLocation(GetPlayerReachEnd());
 	}
 
 }
