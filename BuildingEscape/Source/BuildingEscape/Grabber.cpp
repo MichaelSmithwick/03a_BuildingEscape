@@ -66,6 +66,9 @@ const void UGrabber::LogError(const FString Name, const FString File, const FStr
 // handle user active input, e.g. Key down, Button pushed
 void UGrabber::Grab()
 {
+	// No PhysicsHandle then do nothing and leave
+	if (!PhysicsHandle) { return; }
+
 	// LINE TRACE and see if we reach any actors with physics body collision channel set
 	FHitResult HitResult = GetFirstPhysicsBodyInReach();
 	UPrimitiveComponent* ComponentToGrab = HitResult.GetComponent();
@@ -87,7 +90,10 @@ void UGrabber::Grab()
 // handle user released input, e.g. Key up, Button release
 void UGrabber::Release()
 {
-	PhysicsHandle->ReleaseComponent();
+	if (PhysicsHandle)
+	{
+		PhysicsHandle->ReleaseComponent();
+	}
 }
 
 // Create a debug vector (pointing line) to show where the default pawn is looking if needed
@@ -139,6 +145,9 @@ const FVector UGrabber::GetPlayerReachBase()
 void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	// if no PhysicsHandle then do nothing and leave
+	if (!PhysicsHandle) { return; }
 
 	// move held item to end of players reach line
 	if (PhysicsHandle->GrabbedComponent)
