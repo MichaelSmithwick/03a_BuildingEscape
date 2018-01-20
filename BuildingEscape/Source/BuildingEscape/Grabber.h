@@ -18,20 +18,22 @@ public:
 	// Sets default values for this component's properties
 	UGrabber();
 
+	// Called every frame
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-
 private:
+	// Controls how far Owner can reach out to grab another Actor
 	UPROPERTY(EditAnywhere)
 	float Reach = 200.0;
 
+	// PhysicsHandle used to grab other Actors
 	UPhysicsHandleComponent* PhysicsHandle = nullptr;
 
+	// Gets player input
 	UInputComponent* PawnInputComponent = nullptr;
 
 	// handles user input
@@ -40,9 +42,6 @@ private:
 
 	// find attached physics handle
 	void FindPhysicsHandleComponent();
-
-	// Log an error to the log Output Log
-	const void LogError(const FString Name, const FString File, const FString Function, const int32 ErrorLine);
 
 	// Find and Setup player input component
 	void FindAndSetupInputComponent();
@@ -55,4 +54,7 @@ private:
 
 	// Get vector location of the base of the players reach
 	const FVector GetPlayerReachBase();
+
+	// Log an error to the log Output Log
+	const void LogError(const FString Name, const FString File, const FString Function, const int32 ErrorLine);
 };

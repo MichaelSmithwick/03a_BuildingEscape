@@ -27,38 +27,44 @@ void UOpenDoor::BeginPlay()
 	}
 }
 
-// opens the door to UOpenDoor::OpenAngle degrees
-void UOpenDoor::OpenDoor()
-{
-	GetOwner()->SetActorRotation(FRotator(0.0, OpenAngle, 0.0));
-}
-
-// closes the door
-void UOpenDoor::CloseDoor()
-{
-	GetOwner()->SetActorRotation(FRotator(0.0, 0.0, 0.0));
-}
-
-
 // Called every frame -- checks total mass on pressure plate. if mass is large enough then door will open
 void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// if enough weight is on pressure plate then door will open
-	// and UOpenDoor::LastDoorOpenTime will be set to current game time
-	if(GetTotalMassOfActorsOnPlate() > OpenMass)
+	float CurrentMass = GetTotalMassOfActorsOnPlate();
+
+	// If there IS enough weight then open the door. DoorStatus prevents redundant event firings.
+	if(CurrentMass > MassRequiredToOpenDoor && DoorIs(DoorStatus::Closed))
 	{
-		OpenDoor();
-		LastDoorOpenTime = GetWorld()->GetTimeSeconds();
+		OnOpen.Broadcast();
+		SetDoorStatus(DoorStatus::Open);
+	}
+	
+	// If there IS NOT enough weight then close the door.  DoorStatus prevents redundant event firings.
+	if (CurrentMass <= MassRequiredToOpenDoor && DoorIs(DoorStatus::Open))
+	{
+		OnClose.Broadcast();
+		SetDoorStatus(DoorStatus::Closed);
 	}
 
-	// close door after time delay set by UOpenDoor::DoorCloseDelay
-	if (GetWorld()->GetTimeSeconds() - LastDoorOpenTime > DoorCloseDelay)
+	// resync door status if out of sync
+	if (GetOwner()->GetActorRotation().Yaw == 0.0)
 	{
-		CloseDoor();
+		SetDoorStatus(DoorStatus::Closed);
 	}
+}
 
+// returns true if door state is the same as the specified status
+const bool UOpenDoor::DoorIs(const DoorStatus Status)
+{
+	return DoorState == Status;
+}
+
+// sets door state to the specified status
+void UOpenDoor::SetDoorStatus(const DoorStatus Status)
+{
+	DoorState = Status;
 }
 
 // add up the weight of all AActor types that overlap with the pressure plate

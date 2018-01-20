@@ -28,9 +28,9 @@ void UGrabber::BeginPlay()
 
 }
 
-// Find the Input Component and bind this component's actions to it
-// store Input Component in UGrabber::PawnInputComponent
+// Find the Input Component and assign handling functions
 // (Input Component only appears at run time)
+// Action Name ("Grab") and key assignments are found in 'Project Settings' under 'Input' 
 void UGrabber::FindAndSetupInputComponent()
 {
 	PawnInputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
@@ -38,6 +38,10 @@ void UGrabber::FindAndSetupInputComponent()
 	{
 		PawnInputComponent->BindAction("Grab", EInputEvent::IE_Pressed, this, &UGrabber::Grab);
 		PawnInputComponent->BindAction("Grab", EInputEvent::IE_Released, this, &UGrabber::Release);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s does not have an Input Component."), *(GetOwner()->GetName()))
 	}
 }
 
