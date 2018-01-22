@@ -49,10 +49,13 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 	}
 
 	// resync door status if out of sync
+	// TODO Get actual position of the door and then check to see if this is a valid thing to do
+	/*
 	if (GetOwner()->GetActorRotation().Yaw == 0.0)
 	{
 		SetDoorStatus(DoorStatus::Closed);
 	}
+	*/
 }
 
 // returns true if door state is the same as the specified status
